@@ -3,21 +3,21 @@ mod light_mockup;
 use std::net::Ipv4Addr;
 use std::sync::Arc;
 
-use ascot::device::DeviceInfo;
-use ascot::energy::{EnergyClass, EnergyEfficiencies, EnergyEfficiency};
-use ascot::hazards::Hazard;
-use ascot::parameters::Parameters;
-use ascot::route::Route;
+use tosca::device::DeviceInfo;
+use tosca::energy::{EnergyClass, EnergyEfficiencies, EnergyEfficiency};
+use tosca::hazards::Hazard;
+use tosca::parameters::Parameters;
+use tosca::route::{LightOffRoute, LightOnRoute, Route};
 
-use ascot_os::actions::error::ErrorResponse;
-use ascot_os::actions::info::{info_stateful, InfoResponse};
-use ascot_os::actions::ok::{mandatory_ok_stateful, ok_stateful, OkResponse};
-use ascot_os::actions::serial::{mandatory_serial_stateful, serial_stateful, SerialResponse};
-use ascot_os::devices::light::Light;
-use ascot_os::error::Error;
-use ascot_os::extract::{FromRef, Json, State};
-use ascot_os::server::Server;
-use ascot_os::service::{ServiceConfig, TransportProtocol};
+use tosca_os::actions::error::ErrorResponse;
+use tosca_os::actions::info::{info_stateful, InfoResponse};
+use tosca_os::actions::ok::{mandatory_ok_stateful, ok_stateful, OkResponse};
+use tosca_os::actions::serial::{mandatory_serial_stateful, serial_stateful, SerialResponse};
+use tosca_os::devices::light::Light;
+use tosca_os::error::Error;
+use tosca_os::extract::{FromRef, Json, State};
+use tosca_os::server::Server;
+use tosca_os::service::{ServiceConfig, TransportProtocol};
 
 use async_lock::Mutex;
 
@@ -223,7 +223,7 @@ async fn main() -> Result<(), Error> {
     let state = LightState::new(LightMockup::default(), DeviceInfo::empty());
 
     // Turn light on `PUT` route.
-    let light_on_route = Route::put("/on")
+    let light_on_route = LightOnRoute::put("On")
         .description("Turn light on.")
         .with_hazard(Hazard::ElectricEnergyConsumption)
         .with_parameters(
@@ -233,7 +233,7 @@ async fn main() -> Result<(), Error> {
         );
 
     // Turn light on `POST` route.
-    let light_on_post_route = Route::post("/on")
+    let light_on_post_route = Route::post("/on", "On")
         .description("Turn light on.")
         .with_hazard(Hazard::ElectricEnergyConsumption)
         .with_parameters(
@@ -243,29 +243,29 @@ async fn main() -> Result<(), Error> {
         );
 
     // Turn light off `PUT` route.
-    let light_off_route = Route::put("/off").description("Turn light off.");
+    let light_off_route = LightOffRoute::put("Off").description("Turn light off.");
 
     // Toggle `PUT` route.
-    let toggle_route = Route::put("/toggle")
+    let toggle_route = Route::put("/toggle", "Toggle")
         .description("Toggle a light.")
         .with_hazard(Hazard::ElectricEnergyConsumption);
 
     // Device info `GET` route.
-    let info_route = Route::get("/info")
+    let info_route = Route::get("/info", "Info")
         .description("Get info about a light.")
         .with_hazard(Hazard::LogEnergyConsumption);
 
     // Update energy efficiency `GET` route.
-    let update_energy_efficiency_route = Route::get("/update-energy")
+    let update_energy_efficiency_route = Route::get("/update-energy", "Update Energy")
         .description("Update energy efficiency.")
         .with_hazard(Hazard::LogEnergyConsumption);
 
     // A light device which is going to be run on the server.
     let device = Light::with_state(state)
         // This method is mandatory, if not called, a compiler error is raised.
-        .turn_light_on(mandatory_serial_stateful(light_on_route, turn_light_on))
+        .turn_light_on(light_on_route, mandatory_serial_stateful(turn_light_on))
         // This method is mandatory, if not called, a compiler error is raised.
-        .turn_light_off(mandatory_ok_stateful(light_off_route, turn_light_off))
+        .turn_light_off(light_off_route, mandatory_ok_stateful(turn_light_off))
         .add_action(serial_stateful(light_on_post_route, turn_light_on))?
         .add_action(ok_stateful(toggle_route, toggle))?
         .add_info_action(info_stateful(info_route, info))

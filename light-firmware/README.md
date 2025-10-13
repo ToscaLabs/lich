@@ -1,7 +1,7 @@
 # Light Firwmare
 
 A simple light firmware implemented with the
-[ascot](https://github.com/SoftengPoliTo/ascot) framework.
+[tosca](https://github.com/ToscaLab/tosca) framework.
 
 ## Building
 

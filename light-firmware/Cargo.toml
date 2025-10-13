@@ -3,17 +3,17 @@ name = "light-firmware"
 version = "0.1.0"
 edition = "2024"
 authors = ["Michele Valsesia <luni-4@hotmail.it>"]
-description = "A light implemented with the ascot-os crate."
+description = "A light implemented with the tosca-os crate."
 license = "MIT"
 resolver = "3"
 publish = false
 
 [dependencies]
-ascot.version = "0.1"
-ascot.git = "https://github.com/SoftengPoliTo/ascot"
+tosca.version = "0.1"
+tosca.git = "https://github.com/ToscaLab/tosca"
 
-ascot-os.version = "0.1"
-ascot-os.git = "https://github.com/SoftengPoliTo/ascot"
+tosca-os.version = "0.1"
+tosca-os.git = "https://github.com/ToscaLab/tosca"
 
 async-lock.version = "3.3"
 async-lock.default-features = false
