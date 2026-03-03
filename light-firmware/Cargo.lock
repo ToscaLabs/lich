@@ -784,7 +784,7 @@ dependencies = [
 [[package]]
 name = "tosca"
 version = "0.1.1"
-source = "git+https://github.com/ToscaLab/tosca#f70600727cd183cb34d0a6cc65c2021c44e6e08b"
+source = "git+https://github.com/ToscaLabs/tosca#f70600727cd183cb34d0a6cc65c2021c44e6e08b"
 dependencies = [
  "hashbrown",
  "indexmap",
@@ -796,7 +796,7 @@ dependencies = [
 [[package]]
 name = "tosca-os"
 version = "0.1.1"
-source = "git+https://github.com/ToscaLab/tosca#f70600727cd183cb34d0a6cc65c2021c44e6e08b"
+source = "git+https://github.com/ToscaLabs/tosca#f70600727cd183cb34d0a6cc65c2021c44e6e08b"
 dependencies = [
  "axum",
  "futures-core",

@@ -8,12 +8,14 @@ license = "MIT"
 resolver = "3"
 publish = false
 
-[dependencies]
-tosca.version = "0.1"
-tosca.git = "https://github.com/ToscaLab/tosca"
+[patch.crates-io]
+tosca = { git = "https://github.com/ToscaLabs/tosca" }
+tosca-os = { git = "https://github.com/ToscaLabs/tosca" }
 
-tosca-os.version = "0.1"
-tosca-os.git = "https://github.com/ToscaLab/tosca"
+[dependencies]
+tosca.version = "0.1.1"
+
+tosca-os.version = "0.1.1"
 
 async-lock.version = "3.3"
 async-lock.default-features = false

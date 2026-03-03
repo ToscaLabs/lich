@@ -9,22 +9,22 @@ use tosca::hazards::Hazard;
 use tosca::parameters::Parameters;
 use tosca::route::{LightOffRoute, LightOnRoute, Route};
 
-use tosca_os::actions::error::ErrorResponse;
-use tosca_os::actions::info::{info_stateful, InfoResponse};
-use tosca_os::actions::ok::{mandatory_ok_stateful, ok_stateful, OkResponse};
-use tosca_os::actions::serial::{mandatory_serial_stateful, serial_stateful, SerialResponse};
 use tosca_os::devices::light::Light;
 use tosca_os::error::Error;
 use tosca_os::extract::{FromRef, Json, State};
+use tosca_os::responses::error::ErrorResponse;
+use tosca_os::responses::info::{InfoResponse, info_stateful};
+use tosca_os::responses::ok::{OkResponse, mandatory_ok_stateful, ok_stateful};
+use tosca_os::responses::serial::{SerialResponse, mandatory_serial_stateful, serial_stateful};
 use tosca_os::server::Server;
 use tosca_os::service::{ServiceConfig, TransportProtocol};
 
-use async_lock::Mutex;
-
-use clap::builder::ValueParser;
 use clap::Parser;
+use clap::builder::ValueParser;
 
 use serde::{Deserialize, Serialize};
+
+use tokio::sync::Mutex;
 
 use tracing_subscriber::filter::LevelFilter;
 
@@ -109,14 +109,14 @@ impl FromRef<LightState> for LightInfoState {
 
 #[derive(Serialize, Deserialize)]
 struct LightOnResponse {
-    brightness: i64,
+    brightness: u64,
     #[serde(rename = "save-energy")]
     save_energy: bool,
 }
 
 #[derive(Deserialize)]
 struct Inputs {
-    brightness: i64,
+    brightness: u64,
     #[serde(alias = "save-energy")]
     save_energy: bool,
 }
@@ -177,10 +177,9 @@ fn parse_transport_protocol(protocol: &str) -> Result<TransportProtocol, std::io
     match protocol {
         "tcp" | "TCP" => Ok(TransportProtocol::TCP),
         "udp" | "UDP" => Ok(TransportProtocol::UDP),
-        _ => Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("{protocol:?} is not a supported protocol."),
-        )),
+        _ => Err(std::io::Error::other(format!(
+            "{protocol:?} is not a supported protocol."
+        ))),
     }
 }
 
@@ -228,17 +227,17 @@ async fn main() -> Result<(), Error> {
         .with_hazard(Hazard::ElectricEnergyConsumption)
         .with_parameters(
             Parameters::new()
-                .rangef64("brightness", (0., 20., 0.1))
+                .rangeu64("brightness", (0, 20, 1))
                 .bool("save-energy", false),
         );
 
     // Turn light on `POST` route.
-    let light_on_post_route = Route::post("/on", "On")
+    let light_on_post_route = Route::post("On", "/on")
         .description("Turn light on.")
         .with_hazard(Hazard::ElectricEnergyConsumption)
         .with_parameters(
             Parameters::new()
-                .rangef64("brightness", (0., 20., 0.1))
+                .rangeu64("brightness", (0, 20, 1))
                 .bool("save-energy", false),
         );
 
@@ -246,17 +245,17 @@ async fn main() -> Result<(), Error> {
     let light_off_route = LightOffRoute::put("Off").description("Turn light off.");
 
     // Toggle `PUT` route.
-    let toggle_route = Route::put("/toggle", "Toggle")
+    let toggle_route = Route::put("Toggle", "/toggle")
         .description("Toggle a light.")
         .with_hazard(Hazard::ElectricEnergyConsumption);
 
     // Device info `GET` route.
-    let info_route = Route::get("/info", "Info")
+    let info_route = Route::get("Info", "/info")
         .description("Get info about a light.")
         .with_hazard(Hazard::LogEnergyConsumption);
 
     // Update energy efficiency `GET` route.
-    let update_energy_efficiency_route = Route::get("/update-energy", "Update Energy")
+    let update_energy_efficiency_route = Route::get("Update energy", "/update-energy")
         .description("Update energy efficiency.")
         .with_hazard(Hazard::LogEnergyConsumption);
 
@@ -266,14 +265,14 @@ async fn main() -> Result<(), Error> {
         .turn_light_on(light_on_route, mandatory_serial_stateful(turn_light_on))
         // This method is mandatory, if not called, a compiler error is raised.
         .turn_light_off(light_off_route, mandatory_ok_stateful(turn_light_off))
-        .add_action(serial_stateful(light_on_post_route, turn_light_on))?
-        .add_action(ok_stateful(toggle_route, toggle))?
-        .add_info_action(info_stateful(info_route, info))
-        .add_info_action(info_stateful(
+        .route(serial_stateful(light_on_post_route, turn_light_on))?
+        .route(ok_stateful(toggle_route, toggle))?
+        .info_route(info_stateful(info_route, info))
+        .info_route(info_stateful(
             update_energy_efficiency_route,
             update_energy_efficiency,
         ))
-        .into_device();
+        .build();
 
     // Run a discovery service and the device on the server.
     Server::new(device)
